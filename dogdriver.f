@@ -1,0 +1,100 @@
+
+C
+      SUBROUTINE DRIVE_DOGLEG(N,XCUR,FCUR,FVEC,GRADIENT,L,
+     &                       STEP,SCALE,NOSCALE,Sf,
+     &                       STEPLENGTH_MAX,STEP_TOL,
+     &                       DELTA,RETCODE,XNEW,FNEW,MAX_TAKEN,
+     &                       IOUNIT)
+C----------------------------------------------------------------------
+C---FIND XNEW  ALONG THE DOUBLE DOGLEG CURVE SUCH THAT
+C---FNEW<FCUR+ALPHA*GTRANSPOSE*P,WHERE FNEW AND FCUR ARE THE
+C---OBJECTIVE FUNCTION EVALUATED AT XNEW AND XCUR RESPECTIVELY,
+C---AND GTRANSPOSE IS THE GRADIENT OF OBJECTIVE FUNCTION TRANSPOSE AT XCUR
+C---THE SOLUTION VECTOR P IS CONSTRAINED TO HAVE (SCALED) STEP
+C---LENGTH DELTA. DELTA WILL BE INCREASED OR DECREASED AS APPROPRIATE.
+C---INPUT
+C  N                  NUMBER OF ELEMENTS IN XCUR,P,SCALE,XNEW
+C  XCUR(I)            I=1,2...N CURRENT SOLUTION POINT
+C  FCUR               VALUE OF OBJECTIVE FUNCTION AT XCUR
+C  FVEC                 SUBROUTINE NAME WHICH CALCULATES FNEW
+C  GRADIENT(I)        GRADIENT OF OBJECTIVE FUNCTION AT XCUR
+C  STEP(I)         DESCENT VECTOR FROM XCUR
+C  L(N,N)               CHOLESKY FACTOR OF HESSIAN
+C  SCALE(I)           DIAGONAL SCALING MATRIX
+C  NOSCALE            IF .TRUE. DONT USE SCALE,
+C                     IF .FALSE. SCALE CALCULATIONS USING SCALE
+C  STEPLENGTH_MAX     MAX ALLOWABLE STEP SIZE
+C  STEP_TOL           THE STEP TOLERANCE
+C               THE FOLLOWING FOUR STORAGE VECTORS ARE REQUIRED
+C               TO HOLD INTERMEDIATE RESULTS:
+C  S(I)               I=1,2..N
+C  SSD(I)             I=1,2..N
+C  XPREV(I)           I=1,2..N
+C  V(I)               I=1,2..N
+C
+C
+C---INPUT AND OUTPUT:
+C  DELTA                ON INPUT THE CURRENT TRUST REGION RADIUS
+C                       ON OUTPUT THE NEW TRUST REGION RADIUS
+C
+C
+C---OUTPUT:
+C  RETCODE              INTEGER VARIABLE WITH MEANING AS FOLLOWS
+C                       RETCODE=0   VALID XNEW FOUND
+C                               1   FAILED TO FIND A SATISFACTORY XNEW,
+C                                   SUFFICIENTLY DISTINC FROM XCUR
+C  XNEW(I)              I=1,2..N THE NEW SOLUTION POINT
+C                       XNEW(I)=XCUR(I)+P(I) ON OUTPUT
+C  FNEW                 VALUE OF OBJECTIVE FUNCTION AT XNEW
+C  MAX_TAKEN            LOGICAL VARIABLE =.TRUE. IF MAX STEP
+C                       WAS TAKEN (THIS ALLOWS US TO KEEP TRACK
+C                       OF HOW MANY SUCCESSIVE STEPS OF MAXIMUM LENGTH
+C                       ARE TAKEN. IF THERE ARE TOO MANY THEN THE
+C                       MAX STEP LENGTH,STEPLENGTH_MAX,SHOULD BE
+C                       INCREASED FOR BETTER EFFICIENCY.
+C
+C
+C------------------------------------------------------------------HSJ
+      IMPLICIT NONE
+      INTEGER N,RETCODE,STEP_TYPE,IOUNIT
+      REAL*8 SCALE(*),
+     &     STEPLENGTH_MAX,STEP_TOL,STEPLENGTH,
+     &     DELTA,CAUCHYLENGTH,ETA
+      REAL *8 L(n,n),XCUR(*),GRADIENT(*),STEP(*),
+     &         XNEW(*),HESSIAN(1),Sf(n),
+     &         FCUR,FNEW,FPREV
+      REAL*8    !these are automatic arrays (created and destroyed on each 
+                !entry and exit:
+     &         S(N),SSD(N),XPREV(N),V(N)
+      LOGICAL MAX_TAKEN,NOSCALE,FIRSTDOG,NEWTON_STEP
+      EXTERNAL FVEC
+C
+C
+      FIRSTDOG=.TRUE.
+      STEP_TYPE=2  !SELECT DOGSTEP
+      RETCODE=4
+C---GET THE (SCALED) LENGTH OF THE DESCENT VECTOR:
+      CALL EUCLIDNORM(STEP,SCALE,N,NOSCALE,STEPLENGTH)
+      DO WHILE (RETCODE .GE. 2)
+C---CALCULATE THE DOUBLE DOGLEG CURVE (ON FIRST CALL ONLY) AND
+C---GET THE NEW STEP VECTOR S,SUCH THAT S HAS LENGTH DELTA.
+          CALL DOGSTEP(N,GRADIENT,L,STEP,SCALE,NOSCALE,STEPLENGTH,
+     &                       STEPLENGTH_MAX,DELTA,FIRSTDOG,CAUCHYLENGTH,
+     &                       ETA,SSD,V,S,NEWTON_STEP,IOUNIT)
+C
+C
+          !note step_type = 2 here. Hence the HESSIAN
+          !is in fact never used in the trust_region routine
+          !(trust_region uses HESSIAn only if step_type = 1)
+          !thus hessian does not have to be set when passed on
+          !from here
+          CALL TRUST_REGION(N,XCUR,FCUR,FVEC,GRADIENT,L,S,SCALE,
+     &         NOSCALE,Sf,
+     &         NEWTON_STEP,STEPLENGTH_MAX,STEP_TOL,STEP_TYPE,
+     &         HESSIAN,DELTA,RETCODE,XPREV,FPREV,XNEW,FNEW,MAX_TAKEN)
+
+      ENDDO
+C
+C
+      RETURN
+      END

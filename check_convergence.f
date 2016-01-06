@@ -1,0 +1,106 @@
+C
+C
+      SUBROUTINE CHECK_CONVERGENCE(N,XCUR,XNEW,FVp,FNEW,GRADIENT,
+     &                  SCALE,TYPF,RETCODE,GRADTOL,STEPTOL,NOSCALE,
+     &                  ITNCOUNT,ITNLIMIT,MAX_TAKEN,CONSECMAX,
+     &                  RETURN_CODE,IOUNIT,GRADMAX)
+C-----------------------------------------------------------------------
+C---SUBROUTINE DECIDES IF THE PROBLEM IS CONVERGED.
+C---INPUT
+C  N                    NUMBER OF ELEMENTS IN XCUR,XNEW,GRADIENT,
+C                       SCALE
+C  XCUR(I)              I=1,2..N,CURRENT SOLUTION POINT
+C  XNEW(I)              I=1,2..N,NEW SOLUTION POINT
+C  FNEW                 VALUE OF OBJECTIVE FUNCTION AT XNEW
+C  GRADIENT(I)          I=1,2,..N,VALUE OF GRADIENT AT XNEW
+C  SCALE(I)             I=1,2,..N,SCALE FACTORS
+C  NOSCALE              BOOLEAN,NOSCALE=.TRUE. MEANS NO SCALING IS
+C                       IN EFFECT
+C  TYPF                 TYPICAL  MAGNITUDE OF F AT SOLUTION POINT
+C  RETCODE              RETCODE =0 IF VALID XNEW WAS FOUND
+C                       RETCODE =1 MEANS A VALID XNEW WAS NOT FOUND
+C                       (BY SUBROUTINE LINESEARCH OR DOGDRIVER). IN
+C                       THIS CASE WE ASSUME THAT XCUR IS THE SOLUTION
+C                       AND RETURN WITH RETURN_CODE=3 (SEE BELOW)
+C  GRADTOL              TOLERANCE LEVEL FOR THE (SCALED) GRDIENT
+C  STEPTOL              TOLERANCE LEVEL FOR THE (SCALED) STEP SIZE
+C  ITNCOUNT             ITERATION  COUNTER
+C  ITNLIMIT             MAX ITERATIONS ALLOWED
+C  MAX_TAKEN            NUMBER OF CONSECUTIVE STEPS OF MAXSTEP TAKEN
+C---OUTPUT
+C  CONSECMAX            COUNTS NUMBER OF STEPS OF MAX LENGTH
+C                       TAKEN IN A ROW.
+C  RETURN_CODE          RETURN_CODE=0  MEANS NOT CONVERGED
+C                               =1  NORM OF (SCALED) GRADIENT IS
+C                                   LESS THAN GRADTOL,THIS SHOULD BE
+C                                   A LOCAL MINIMIZER UNLESS GRADTOL
+C                                   IS SET TOO LARGE.
+C                               =2  SCALED DISTNACE BETWEEN LAST TWO STEPS
+C                                   IS LESS THAN STEPTOL. COULD MEAN
+C                                   WERE CONVERGED,OR STEPTOL IS TOO LARGE
+C                                   OR ALGORITHM IS MAKING VERY SMALL
+C                                   STEPS TOWARD A MINIMIZER
+C                               =3  LAST STEP FAILED TO LOCATE A LOWER
+C                                   POINT THAN XCUR,XCUR IS THE SOLUTION
+C                                   OR STEPTOL IS TOO LARGE
+C                               =4  ITERATION LIMIT EXCEEDED
+C                               =5  FIVE CONSECUTIVE STEPS OF SIZE
+C                                   MAXSTEP WERE TAKEN. MAXSTEP
+C                                   IS SET TOO SMALL.
+C
+C
+C-------------------------------------------------------------------HSJ
+C
+C
+      IMPLICIT NONE
+      INTEGER N,RETURN_CODE,CONSECMAX,ITNLIMIT,ITNCOUNT,RETCODE,J,
+     &        IOUNIT
+      REAL*8 SCALE(*),TYPF,
+     &     GRADTOL,STEPTOL,GRADMAX,FMAX,DUMY,ABS,
+     &     DUMY1,STEPMAX,CHISQ,FVp(n)
+      REAL *8 XCUR(*),XNEW(*),GRADIENT(*),FNEW
+      LOGICAL MAX_TAKEN,NOSCALE
+C
+C
+      RETURN_CODE=0
+      GRADMAX=0.0
+      FMAX=MAX(FNEW,TYPF)
+      DO J=1,N
+          DUMY=1.0
+          IF(.NOT. NOSCALE)DUMY=1./SCALE(J)
+          DUMY=MAX(ABS(XNEW(J)),DUMY)
+          GRADMAX=MAX(ABS(GRADIENT(J))*DUMY/FMAX,GRADMAX)
+      ENDDO
+      STEPMAX=0.0
+      DO J=1,N
+          DUMY=1.0
+          IF(.NOT. NOSCALE)DUMY=1./SCALE(J)
+          DUMY=MAX(XNEW(J),DUMY)
+          DUMY1=ABS(XNEW(J)-XCUR(J))
+          STEPMAX=MAX(DUMY1/DUMY,STEPMAX)
+      ENDDO
+      IF(RETCODE .EQ. 1)THEN
+          RETURN_CODE=3
+      ELSE IF(GRADMAX .LE. GRADTOL)THEN
+          RETURN_CODE=1
+      ELSE IF(STEPMAX .LE. STEPTOL)THEN
+          RETURN_CODE=2
+      ELSE IF(ITNCOUNT .GE. ITNLIMIT)THEN
+          RETURN_CODE=4
+      ELSE IF(MAX_TAKEN .EQ. .TRUE. )THEN
+          CONSECMAX=CONSECMAX+1
+          IF(CONSECMAX .EQ. 500)RETURN_CODE=5
+      ELSE
+          CONSECMAX=0
+      ENDIF
+      CHISQ=2.*FNEW
+
+      IF(IOUNIT .NE. 0)THEN
+          WRITE(IOUNIT,1)ITNCOUNT,GRADMAX,GRADTOL,STEPMAX,STEPTOL,CHISQ
+    1     FORMAT(2X,'ITER,GRADMAX,GRADTOL,STEPMAX,STEPTOL,SSQRESID :',/
+     &             2X,I5,4(1PE10.3,1X),1PE15.7)
+      ENDIF
+C
+C
+      RETURN
+      END

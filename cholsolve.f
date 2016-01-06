@@ -1,0 +1,49 @@
+C
+C
+C
+      SUBROUTINE CHOLSOLVE(N,GRADIENT,L,STEP)
+C----------------------------------------------------------------------
+C   SOLVE L*LT*STEP=-GRADIENT
+C  WHERE LT (IE L TRANSPOSE) IS THE UPPER TRIANGLE AND L IS THE
+C  LOWER TRIANGLE OF THE CHOLESKY DECOMPOSITION OF SOME POSITIVE
+C  DEFINITE MATRIX.
+C  THE SOLUTION IS DONE IN TWO STEPS. DEFINE Y=-LT*STEP.
+C  THEN A) SOLVE L*Y=GRADIENT FOR Y
+C  AND  B) SOLVE LT*STEP=-Y FOR STEP
+C  (DOING IT THIS WAY AVOIDS MODIFYING THE GRADIENT AND REQUIRES NO
+C   ADDITIONAL STORAGE).
+C---INPUT
+C   GRADIENT(I)    I=1,2..N,THE RHS
+C   L(I,J)         CHOLESKY decomposed matrix
+C   N              SIZE OF PROBLEM
+C---OUTPUT
+C  STEP(I)         I=1,2..N THE SOLUTION
+C                  NOTE THAT WE SOLVE SET OF EQUATIONS FOR THE
+C                  NEGATIVE OF THE RHS,BUT DO NOT CHANGE THE SIGN
+C                  OF THE RHS VECTOR.
+C-----------------------------------------------------------------HSJ
+C
+C
+      IMPLICIT NONE
+      INTEGER J,I,N
+      REAL *8 SUMD,L(N,N),GRADIENT(*),STEP(*)
+
+C
+C
+C---SOLVE L*Y=GRADIENT,USE STEP TO STORE Y:
+      Call Lsolve(n,gradient,L,step)
+
+C
+C---SOLVE LT*STEP=-Y;
+      STEP(N)=-STEP(N)/L(n,n)            !NOTE THE - SIGN HERE
+      DO I=N-1,1,-1
+          SUMD=0.0
+          DO J=I+1,N
+              SUMD=SUMD+L(j,i)*STEP(J)
+          ENDDO
+          STEP(I)=-(SUMD+STEP(I))/L(i,i)  !NOTE REVERSAL OF SIGN
+       ENDDO
+C
+C
+      RETURN
+      END
