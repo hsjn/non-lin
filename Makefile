@@ -25,19 +25,19 @@ OBJECTS   =  nedriver.o nefn.o neinck.o nemodel.o nemodelfac.o \
 	/usr/local/pgi3.2/linux86/lib/libblas.a
 
 #for a21p machine using rpm lapack and blas requires linking to lg2c:
-LIBRARIES      = /usr/lib/liblapack.a /usr/lib/libblas.a  \
+#LIBRARIES      = /usr/lib/liblapack.a /usr/lib/libblas.a  \
 	/usr/lib/gcc-lib/i586-mandrake-linux/2.95.3/libg2c.a \
 
-LIBRARIES	=/usr/lib/liblapack.a /usr/lib/libblas.a  /usr/lib/libg2c.a 	/usr/lib/gcc-lib/i586-suse-linux/3.3.5/libgcc.a
-LIBRARIES       = -L/usr/local/atlas/Linux_P4/lib  -llapack -lcblas -lf77blas -latlas \
+#LIBRARIES	=/usr/lib/liblapack.a /usr/lib/libblas.a  /usr/lib/libg2c.a 	/usr/lib/gcc-lib/i586-suse-linux/3.3.5/libgcc.a
+#LIBRARIES       = -L/usr/local/atlas/Linux_P4/lib  -llapack -lcblas -lf77blas -latlas \
 			 /usr/lib/gcc/i586-suse-linux/4.0.2/libgcc.a
-LIBRARIES       = -L/usr/local/lf9562/lib/  -llapackmt -lblasmt  \
+#LIBRARIES       = -L/usr/local/lf9562/lib/  -llapackmt -lblasmt  \
 			 /usr/lib/gcc/i586-suse-linux/4.0.2/libgcc.a
-DEBUG     = -g -Mbounds
+DEBUG     = -g 
 OPTIMIZE  = -fast
-LISTING   = -Mlist
-SPECIAL   = -Msave -byteswapio -r8
-COMP      =/usr/local/mpi/bin/mpif90 
+#LISTING   = -Mlist
+#SPECIAL   = -Msave -byteswapio -r8
+COMP      =gfortran 
 OPTION = $(DEBUG)
 #OPTION = $(OPTIMIZE)
 ifndef OPEN_MP 
@@ -70,15 +70,14 @@ ifndef  MPI
 else
   MSG = dlines
 # compiler specs, for Portland Group Compiler:
-  FC= /usr/local/mpich-1.2.1/bin/mpif90 
+  FC= gfortran
   CXX= /usr/local/mpich-1.2.1/bin/mpicc 
   INC=/usr/local/mpich-1.2.1/include 
 endif
 
 #COMPILE77   = pgf77 -c $(OPTIMIZE) $(LISTING) $(SPECIAL)
-COMPILE   = $(FC) -I$(INC) -L$(LIBS)  -M$(MSG) $(OMP) $(AUTP) -c \
-	    	 $(OPTION) $(LISTING) $(SPECIAL)
-LOAD      = $(FC)   -o $(NAME) # -m
+COMPILE   = $(FC)  -I$(INC) -L$(LIBS)  -M  broy-c
+LOAD      = $(FC)   -o $(NAME) 
 ARCHIVE   = ar rv
 
 PROTECT   = chmod 755

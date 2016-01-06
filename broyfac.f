@@ -55,7 +55,7 @@ c INPUT/OUTPUT:
       ENDDO
       
 
-      IF(skipupdate .eq. .false.)THEN
+      IF(skipupdate .EQV. .false.)THEN
          DO i =1,n
             sumd =0.0D0
             DO j = 1,n
