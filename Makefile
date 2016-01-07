@@ -33,11 +33,14 @@ OBJECTS   =  nedriver.o nefn.o neinck.o nemodel.o nemodelfac.o \
 			 /usr/lib/gcc/i586-suse-linux/4.0.2/libgcc.a
 #LIBRARIES       = -L/usr/local/lf9562/lib/  -llapackmt -lblasmt  \
 			 /usr/lib/gcc/i586-suse-linux/4.0.2/libgcc.a
+
+LIBRARIES       = -L/opt/local/lib  -llapack -lcblas -lf77blas -latlas 
 DEBUG     = -g 
 OPTIMIZE  = -fast
 #LISTING   = -Mlist
 #SPECIAL   = -Msave -byteswapio -r8
-COMP      =gfortran 
+#COMP      =gfortran
+COMP	=gfortran-mp-5
 OPTION = $(DEBUG)
 #OPTION = $(OPTIMIZE)
 ifndef OPEN_MP 
@@ -76,7 +79,7 @@ else
 endif
 
 #COMPILE77   = pgf77 -c $(OPTIMIZE) $(LISTING) $(SPECIAL)
-COMPILE   = $(FC)  -I$(INC) -L$(LIBS)  -M  broy-c
+COMPILE   = $(FC)  -I$(INC) -L$(LIBS)  -M  -c
 LOAD      = $(FC)   -o $(NAME) 
 ARCHIVE   = ar rv
 
